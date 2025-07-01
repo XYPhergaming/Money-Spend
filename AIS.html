@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Tic-Tac-Toe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- CSS VARIABLES & THEME --- */
+        :root {
+            --bg-color: #0d051c;
+            --purple-glow: #6a0dad;
+            --cyan: #00ffff;
+            --cyan-glow: 0 0 5px #00ffff, 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 40px #00aaff;
+            --pink: #ff00ff;
+            --pink-glow: 0 0 5px #ff00ff, 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 40px #ff00aa;
+            --font-family: 'Orbitron', sans-serif;
+        }
+
+        /* --- GENERAL STYLES --- */
+        body {
+            background-color: var(--bg-color);
+            color: #fff;
+            font-family: var(--font-family);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: var(--purple-glow);
+            text-shadow: 0 0 5px var(--purple-glow), 0 0 10px var(--purple-glow);
+        }
+
+        /* --- SCREEN VISIBILITY --- */
+        .screen {
+            display: none;
+            width: 100%;
+        }
+
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        /* --- BUTTONS --- */
+        .btn {
+            background: transparent;
+            border: 2px solid var(--purple-glow);
+            color: var(--purple-glow);
+            padding: 15px 30px;
+            font-size: 1.5rem;
+            font-family: var(--font-family);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px var(--purple-glow) inset;
+            text-transform: uppercase;
+        }
+
+        .btn:hover {
+            background: var(--purple-glow);
+            color: var(--bg-color);
+            box-shadow: 0 0 20px var(--purple-glow);
+        }
+
+        .btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        /* --- PLAYER DISPLAY --- */
+        #player-display {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .player-box {
+            border: 2px solid;
+            padding: 10px 20px;
+            font-size: 2rem;
+            font-weight: bold;
+            width: 45%;
+        }
+
+        .player-box.player-x {
+            border-color: var(--cyan);
+            color: var(--cyan);
+            box-shadow: var(--cyan-glow);
+        }
+
+        .player-box.player-o {
+            border-color: var(--pink);
+            color: var(--pink);
+            box-shadow: var(--pink-glow);
+        }
+
+        .player-box.active-turn {
+            animation: pulse-border 1.5s infinite;
+        }
+
+        /* --- GAME BOARD --- */
+        #game-board-container {
+            position: relative;
+        }
+
+        #game-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            width: 300px;
+            height: 300px;
+            position: relative;
+            background: 
+                linear-gradient(to right, var(--purple-glow) 4px, transparent 4px) 0 0,
+                linear-gradient(to right, var(--purple-glow) 4px, transparent 4px) 0 100%,
+                linear-gradient(to left, var(--purple-glow) 4px, transparent 4px) 100% 0,
+                linear-gradient(to left, var(--purple-glow) 4px, transparent 4px) 100% 100%,
+                linear-gradient(to bottom, var(--purple-glow) 4px, transparent 4px) 0 0,
+                linear-gradient(to bottom, var(--purple-glow) 4px, transparent 4px) 100% 0,
+                linear-gradient(to top, var(--purple-glow) 4px, transparent 4px) 0 100%,
+                linear-gradient(to top, var(--purple-glow) 4px, transparent 4px) 100% 100%;
+            background-repeat: no-repeat;
+            background-size: 20px 20px;
+        }
+        
+        .grid-line {
+            background: var(--purple-glow);
+            box-shadow: 0 0 10px var(--purple-glow);
+        }
+
+        .grid-line.vertical {
+            position: absolute;
+            width: 4px;
+            height: 100%;
+            top: 0;
+        }
+        .grid-line.vertical.one { left: 98px; }
+        .grid-line.vertical.two { left: 198px; }
+
+        .grid-line.horizontal {
+            position: absolute;
+            height: 4px;
+            width: 100%;
+            left: 0;
+        }
+        .grid-line.horizontal.one { top: 98px; }
+        .grid-line.horizontal.two { top: 198px; }
+
+        .cell {
+            width: 100px;
+            height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 4rem;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            animation: pop-in 0.3s ease-out forwards;
+            transform: scale(0);
+        }
+
+        .cell.X {
+            color: var(--cyan);
+            text-shadow: var(--cyan-glow);
+        }
+        
+        .cell.O {
+            color: var(--pink);
+            text-shadow: var(--pink-glow);
+        }
+
+        /* --- WINNING LINE --- */
+        #win-line {
+            position: absolute;
+            background-color: white;
+            height: 8px;
+            border-radius: 4px;
+            transform-origin: center;
+            display: none;
+            transition: all 0.5s ease-in-out;
+        }
+
+        #win-line.show {
+            display: block;
+        }
+
+        #win-line.win-x {
+            background-color: var(--cyan);
+            box-shadow: var(--cyan-glow);
+        }
+        
+        #win-line.win-o {
+            background-color: var(--pink);
+            box-shadow: var(--pink-glow);
+        }
+
+        /* Winning line positions */
+        .win-row-0 { top: 46px; left: 15px; width: 270px; }
+        .win-row-1 { top: 146px; left: 15px; width: 270px; }
+        .win-row-2 { top: 246px; left: 15px; width: 270px; }
+        .win-col-0 { left: 46px; top: 15px; height: 270px; width: 8px; }
+        .win-col-1 { left: 146px; top: 15px; height: 270px; width: 8px; }
+        .win-col-2 { left: 246px; top: 15px; height: 270px; width: 8px; }
+        .win-diag-0 { top: 146px; left: 15px; width: 320px; transform: rotate(45deg); }
+        .win-diag-1 { top: 146px; left: 15px; width: 320px; transform: rotate(-45deg); }
+
+        /* --- STATUS & CONTROLS --- */
+        #status-text {
+            font-size: 1.5rem;
+            height: 30px;
+            color: #ccc;
+        }
+
+        #post-game-controls {
+            display: none;
+            gap: 10px;
+        }
+
+        #post-game-controls.show {
+            display: flex;
+        }
+        
+        #play-again-btn.waiting-pulse {
+            animation: pulse-border 1.5s infinite;
+        }
+
+        /* --- CHAT SYSTEM --- */
+        #chat-container {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            margin-top: 20px;
+        }
+        
+        #chat-messages {
+            height: 120px;
+            overflow-y: auto;
+            border: 2px solid var(--purple-glow);
+            padding: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .chat-message {
+            padding: 5px 10px;
+            border-radius: 10px;
+            max-width: 75%;
+            word-wrap: break-word;
+        }
+        
+        .chat-message.sent {
+            background-color: var(--pink);
+            align-self: flex-end;
+            color: #fff;
+            text-shadow: none;
+        }
+
+        .chat-message.received {
+            background-color: var(--cyan);
+            align-self: flex-start;
+            color: #000;
+            text-shadow: none;
+        }
+
+        #chat-form {
+            display: flex;
+            gap: 10px;
+        }
+
+        #chat-input {
+            flex-grow: 1;
+            background: transparent;
+            border: 2px solid var(--purple-glow);
+            color: #fff;
+            padding: 10px;
+            font-family: var(--font-family);
+        }
+
+        #chat-send-btn {
+            background: var(--purple-glow);
+            color: #fff;
+            border: none;
+            padding: 0 20px;
+            cursor: pointer;
+            font-family: var(--font-family);
+        }
+
+        /* --- ANIMATIONS --- */
+        @keyframes pop-in {
+            from { transform: scale(0); opacity: 0; }
+            to   { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 10px, inset 0 0 10px; }
+            50% { box-shadow: 0 0 20px, inset 0 0 20px; }
+            100% { box-shadow: 0 0 10px, inset 0 0 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen active">
+            <h1>Neon Tic-Tac-Toe</h1>
+            <button id="start-game-btn" class="btn">Start Game</button>
+        </div>
+
+        <!-- Waiting Screen -->
+        <div id="waiting-screen" class="screen">
+            <h2 id="waiting-text">Searching for opponent...</h2>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <div id="player-display">
+                <div id="player-x-box" class="player-box player-x">X</div>
+                <div id="player-o-box" class="player-box player-o">O</div>
+            </div>
+
+            <div id="status-text">Your Turn</div>
+
+            <div id="game-board-container">
+                <div id="game-board">
+                    <!-- The grid lines -->
+                    <div class="grid-line vertical one"></div>
+                    <div class="grid-line vertical two"></div>
+                    <div class="grid-line horizontal one"></div>
+                    <div class="grid-line horizontal two"></div>
+                    <!-- The cells will be generated by JS -->
+                </div>
+                <div id="win-line"></div>
+            </div>
+
+            <div id="post-game-controls">
+                <button id="play-again-btn" class="btn">Play Again</button>
+                <button id="end-game-btn" class="btn">End Game</button>
+            </div>
+
+            <div id="chat-container">
+                <div id="chat-messages"></div>
+                <form id="chat-form">
+                    <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off">
+                    <button type="submit" id="chat-send-btn">Send</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <script>
+    // <<< PASTE YOUR FIREBASE CONFIGURATION OBJECT HERE >>>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBBA8t1FJGGWan6g6w6lSc-xv0Vk9A0loE",
+        authDomain: "fastm-eefa4.firebaseapp.com",
+        databaseURL: "https://fastm-eefa4-default-rtdb.firebaseio.com",
+        projectId: "fastm-eefa4",
+        storageBucket: "fastm-eefa4.firebasestorage.app",
+        messagingSenderId: "816049412775",
+        appId: "1:816049412775:web:8c75f1d6d1140c1d585982"
+        };
+
+    // --- INITIALIZATION ---
+    if (!firebaseConfig.databaseURL) {
+        alert("Firebase config is missing! Please paste your Firebase configuration object into the script tag in index.html.");
+    }
+
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    // --- DOM ELEMENTS ---
+    const startScreen = document.getElementById('start-screen');
+    const waitingScreen = document.getElementById('waiting-screen');
+    const gameScreen = document.getElementById('game-screen');
+    const startGameBtn = document.getElementById('start-game-btn');
+    const gameBoard = document.getElementById('game-board');
+    const statusText = document.getElementById('status-text');
+    const playerXBox = document.getElementById('player-x-box');
+    const playerOBox = document.getElementById('player-o-box');
+    const postGameControls = document.getElementById('post-game-controls');
+    const playAgainBtn = document.getElementById('play-again-btn');
+    const endGameBtn = document.getElementById('end-game-btn');
+    const winLine = document.getElementById('win-line');
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input');
+    const chatMessages = document.getElementById('chat-messages');
+
+    // --- GAME STATE VARIABLES ---
+    let playerId = null;
+    let playerSymbol = null;
+    let gameId = null;
+    let gameRef = null;
+    let gameListener = null;
+    let chatListener = null;
+
+    // --- UTILITY FUNCTIONS ---
+    function showScreen(screen) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        screen.classList.add('active');
+    }
+
+    function generatePlayerId() {
+        return Math.random().toString(36).substr(2, 9);
+    }
+
+    // --- CORE GAME LOGIC ---
+
+    // 1. Start Matchmaking
+    startGameBtn.addEventListener('click', () => {
+        playerId = generatePlayerId();
+        startGameBtn.disabled = true;
+        startGameBtn.textContent = "Searching...";
+        findMatch();
+    });
+
+    function findMatch() {
+        showScreen(waiting-screen);
+        const waitingPlayersRef = database.ref('waitingPlayers');
+        
+        // Use a transaction to safely handle matchmaking
+        waitingPlayersRef.transaction(currentWaiting => {
+            if (currentWaiting === null) {
+                // No one is waiting, I am the first.
+                return { playerId: playerId };
+            } else {
+                // Someone is waiting, let's start a game.
+                const opponentId = currentWaiting.playerId;
+                if (opponentId === playerId) return; // Prevent matching with self on quick refresh
+                
+                createGame(playerId, opponentId);
+                // I've been matched, so I remove the waiting player node.
+                return null;
+            }
+        }, (error, committed, snapshot) => {
+            if (error) {
+                console.error("Transaction failed:", error);
+                resetToStart();
+            } else if (committed) {
+                if (snapshot.val() !== null && snapshot.val().playerId === playerId) {
+                    // I am the waiting player now.
+                    // Set up onDisconnect to remove myself from lobby if I close the tab.
+                    database.ref(`waitingPlayers`).onDisconnect().remove();
+                    // Listen for when I get removed, which means a game has started for me.
+                    waitingPlayersRef.on('value', (snap) => {
+                        if (snap.val() === null) {
+                           // I've been matched by someone else. I need to find my game.
+                           findMyGame();
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    function createGame(player1Id, player2Id) {
+        gameId = database.ref('games').push().key;
+        const newGame = {
+            players: {
+                [player1Id]: 'X',
+                [player2Id]: 'O'
+            },
+            board: Array(9).fill(null),
+            turn: 'X',
+            status: 'active', // 'active', 'win', 'draw'
+            winner: null,
+            rematch: {},
+            playerConnections: {
+                [player1Id]: true,
+                [player2Id]: true
+            }
+        };
+        database.ref(`games/${gameId}`).set(newGame).then(() => {
+            joinGame(gameId);
+        });
+    }
+
+    function findMyGame() {
+        // The player who was waiting needs to find which game they were put into.
+        database.ref('games').orderByChild(`players/${playerId}`).equalTo(playerSymbol || 'O').limitToLast(1).once('value', snapshot => {
+            if (snapshot.exists()) {
+                const gameData = snapshot.val();
+                gameId = Object.keys(gameData)[0];
+                joinGame(gameId);
+            }
+        });
+    }
+
+    // 2. Join and Monitor Game
+    function joinGame(id) {
+        gameId = id;
+        gameRef = database.ref(`games/${gameId}`);
+
+        // Set up onDisconnect to handle leaving mid-game
+        const playerConnectionRef = gameRef.child('playerConnections').child(playerId);
+        playerConnectionRef.onDisconnect().set(false);
+        playerConnectionRef.set(true);
+
+        // Remove the lobby listener if it's still active
+        database.ref('waitingPlayers').off();
+
+        if (gameListener) gameRef.off('value', gameListener);
+        gameListener = gameRef.on('value', snapshot => {
+            const gameState = snapshot.val();
+            if (!gameState) {
+                // Game data was deleted (e.g., opponent clicked "End Game")
+                alert("The game has ended.");
+                resetToStart();
+                return;
+            }
+            playerSymbol = gameState.players[playerId];
+            updateUI(gameState);
+        });
+
+        if (chatListener) gameRef.child('chat').off('child_added', chatListener);
+        chatListener = gameRef.child('chat').on('child_added', snapshot => {
+            const message = snapshot.val();
+            displayChatMessage(message);
+        });
+
+        setupGameBoard();
+        showScreen(game-screen);
+    }
+    
+    function setupGameBoard() {
+        gameBoard.innerHTML = '';
+        for (let i = 0; i < 9; i++) {
+            const cell = document.createElement('div');
+            cell.classList.add('cell');
+            cell.dataset.index = i;
+            cell.addEventListener('click', handleCellClick);
+            gameBoard.appendChild(cell);
+        }
+    }
+
+    // 3. Update UI based on Firebase state
+    function updateUI(gameState) {
+        // Update Board
+        gameState.board.forEach((symbol, index) => {
+            const cell = gameBoard.querySelector(`[data-index='${index}']`);
+            if (cell.textContent !== symbol && symbol !== null) {
+                cell.textContent = symbol;
+                cell.classList.add(symbol);
+            }
+        });
+        
+        // Update Turn Indicator
+        if (gameState.status === 'active') {
+            if (gameState.turn === 'X') {
+                playerXBox.classList.add('active-turn');
+                playerOBox.classList.remove('active-turn');
+            } else {
+                playerOBox.classList.add('active-turn');
+                playerXBox.classList.remove('active-turn');
+            }
+            statusText.textContent = gameState.turn === playerSymbol ? "Your Turn" : "Opponent's Turn";
+        }
+
+        // Handle game over states
+        postGameControls.classList.remove('show');
+        winLine.className = 'win-line'; // Reset win line
+        
+        if (gameState.status !== 'active') {
+             playerXBox.classList.remove('active-turn');
+             playerOBox.classList.remove('active-turn');
+             postGameControls.classList.add('show');
+             
+             if (gameState.status === 'win') {
+                statusText.textContent = gameState.winner === playerSymbol ? "You Win!" : "You Lose!";
+                showWinLine(gameState.winCombination);
+             } else if (gameState.status === 'draw') {
+                statusText.textContent = "It's a Draw!";
+             }
+        }
+
+        // Handle disconnection message
+        const opponentId = Object.keys(gameState.players).find(id => id !== playerId);
+        if (gameState.playerConnections && !gameState.playerConnections[opponentId]) {
+            statusText.textContent = "Opponent disconnected.";
+            postGameControls.classList.add('show');
+            playAgainBtn.disabled = true;
+        } else {
+            playAgainBtn.disabled = false;
+        }
+
+
+        // Handle Rematch UI
+        playAgainBtn.classList.remove('waiting-pulse');
+        playAgainBtn.textContent = "Play Again";
+        if (gameState.rematch) {
+            if (gameState.rematch[playerId]) {
+                playAgainBtn.textContent = "Waiting...";
+                playAgainBtn.disabled = true;
+            } else {
+                playAgainBtn.disabled = false;
+            }
+            const opponentId = Object.keys(gameState.players).find(pId => pId !== playerId);
+            if (gameState.rematch[opponentId]) {
+                playAgainBtn.classList.add('waiting-pulse');
+            }
+        }
+    }
+
+    function showWinLine(winCombination) {
+        if (!winCombination) return;
+        winLine.classList.add(`win-${winCombination.type}-${winCombination.index}`);
+        winLine.classList.add(winCombination.winner === 'X' ? 'win-x' : 'win-o');
+        winLine.classList.add('show');
+    }
+
+    // 4. Handle Player Actions
+    function handleCellClick(e) {
+        const index = e.target.dataset.index;
+        gameRef.once('value', snapshot => {
+            const gameState = snapshot.val();
+            if (gameState.status === 'active' && gameState.turn === playerSymbol && !gameState.board[index]) {
+                const newBoard = [...gameState.board];
+                newBoard[index] = playerSymbol;
+
+                const winInfo = checkWinner(newBoard);
+                const updates = {};
+                updates.board = newBoard;
+
+                if (winInfo) {
+                    updates.status = winInfo.status;
+                    updates.winner = winInfo.winner;
+                    updates.winCombination = { type: winInfo.type, index: winInfo.index, winner: winInfo.winner };
+                } else {
+                    updates.turn = playerSymbol === 'X' ? 'O' : 'X';
+                }
+                gameRef.update(updates);
+            }
+        });
+    }
+
+    playAgainBtn.addEventListener('click', () => {
+        const rematchRef = gameRef.child(`rematch/${playerId}`);
+        rematchRef.set(true);
+
+        // Check if the opponent also wants to rematch
+        gameRef.child('rematch').once('value', snapshot => {
+            const rematchRequests = snapshot.val();
+            if (rematchRequests && Object.keys(rematchRequests).length === 2) {
+                // Both players want a rematch, reset the game
+                const resetGame = {
+                    board: Array(9).fill(null),
+                    turn: 'X',
+                    status: 'active',
+                    winner: null,
+                    winCombination: null,
+                    rematch: null // Clear rematch requests
+                };
+                gameRef.update(resetGame);
+            }
+        });
+    });
+
+    endGameBtn.addEventListener('click', () => {
+        if (gameRef) {
+            gameRef.remove(); // This will trigger the 'value' listener with a null snapshot for all clients
+        }
+        resetToStart();
+    });
+
+    chatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const messageText = chatInput.value.trim();
+        if (messageText) {
+            const message = {
+                senderId: playerId,
+                text: messageText,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            };
+            gameRef.child('chat').push(message);
+            chatInput.value = '';
+        }
+    });
+
+    function displayChatMessage(message) {
+        const messageEl = document.createElement('div');
+        messageEl.classList.add('chat-message');
+        messageEl.textContent = message.text;
+        if (message.senderId === playerId) {
+            messageEl.classList.add('sent');
+        } else {
+            messageEl.classList.add('received');
+        }
+        chatMessages.appendChild(messageEl);
+        chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll
+    }
+
+    // 5. Game Win/Draw Logic
+    function checkWinner(board) {
+        const winningCombos = [
+            // Rows
+            { combo: [0, 1, 2], type: 'row', index: 0 },
+            { combo: [3, 4, 5], type: 'row', index: 1 },
+            { combo: [6, 7, 8], type: 'row', index: 2 },
+            // Columns
+            { combo: [0, 3, 6], type: 'col', index: 0 },
+            { combo: [1, 4, 7], type: 'col', index: 1 },
+            { combo: [2, 5, 8], type: 'col', index: 2 },
+            // Diagonals
+            { combo: [0, 4, 8], type: 'diag', index: 0 },
+            { combo: [2, 4, 6], type: 'diag', index: 1 }
+        ];
+
+        for (const { combo, type, index } of winningCombos) {
+            const [a, b, c] = combo;
+            if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                return { status: 'win', winner: board[a], type, index };
+            }
+        }
+
+        if (board.every(cell => cell !== null)) {
+            return { status: 'draw', winner: null };
+        }
+
+        return null;
+    }
+
+    // 6. Reset Game State
+    function resetToStart() {
+        // Turn off listeners to prevent memory leaks
+        if (gameRef && gameListener) gameRef.off('value', gameListener);
+        if (gameRef && chatListener) gameRef.child('chat').off('child_added', chatListener);
+        database.ref('waitingPlayers').off(); // Turn off lobby listener
+
+        // Reset local state
+        playerId = null;
+        playerSymbol = null;
+        gameId = null;
+        gameRef = null;
+        gameListener = null;
+        chatListener = null;
+
+        // Reset UI
+        showScreen(start-screen);
+        startGameBtn.disabled = false;
+        startGameBtn.textContent = "Start Game";
+        gameBoard.innerHTML = '';
+        chatMessages.innerHTML = '';
+        postGameControls.classList.remove('show');
+        winLine.className = 'win-line';
+    }
+
+    // Initial setup
+    showScreen(start-screen);
+    </script>
+</body>
+</html>
